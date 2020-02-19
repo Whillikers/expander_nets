@@ -5,11 +5,9 @@ statically-presented binary vector.
 
 from typing import Tuple
 
-import numpy as np
-
 import torch
 
-ParityProblem = Tuple[np.ndarray, bool]
+ParityExample = Tuple[torch.Tensor, torch.Tensor]
 
 
 class BinaryParityDataset(torch.utils.data.IterableDataset):
@@ -38,9 +36,8 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):
         while True:
             yield self._make_example()
 
-    def _make_example(self) -> ParityProblem:
-        vec = np.random.randint(0, 2, size=self._size) * 2 - 1
-        mask = np.random.random(self._size) < self._difficulty
+    def _make_example(self) -> ParityExample:
+        vec = torch.randint(2, (self._size,), dtype=torch.int8) * 2 - 1
+        mask = torch.rand_like(vec, dtype=float) < self._difficulty
         feature = vec * mask
-        ones = np.count_nonzero(feature == 1)
-        return (feature, ones % 2)
+        return (feature, (feature == 0).sum() % 2)
