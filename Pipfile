@@ -22,6 +22,7 @@ pynvim = "*"
 torch = "*"  # Project dependencies
 matplotlib = "*"
 numpy = "*"
+bleach = ">=3.1.1"
 
 [requires]
 python_version = "3.8"
