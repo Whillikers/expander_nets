@@ -26,6 +26,9 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
         Must be in the range [0, 1].
     """
 
+    size: int
+    difficulty: float
+
     def __init__(self, size: int = 64, difficulty: float = 0.5):
         if size <= 0:
             raise ValueError("size must be at least one.")
@@ -33,16 +36,16 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
         if not 0 <= difficulty <= 1:
             raise ValueError("difficulty must be in range [0, 1]")
 
-        self._difficulty = difficulty
-        self._size = size
+        self.difficulty = difficulty
+        self.size = size
 
     def __iter__(self):
         while True:
             yield self._make_example()
 
     def _make_example(self) -> ParityExample:
-        vec = torch.randint(2, (1, self._size,), dtype=torch.int8) * 2 - 1
-        mask = torch.rand_like(vec, dtype=float) < self._difficulty  # type: ignore
+        vec = torch.randint(2, (1, self.size,), dtype=torch.int8) * 2 - 1
+        mask = torch.rand_like(vec, dtype=float) < self.difficulty  # type: ignore
         feature = vec * mask
         parity = ((feature == 1).sum() % 2).to(dtype=bool)
         return feature, parity
