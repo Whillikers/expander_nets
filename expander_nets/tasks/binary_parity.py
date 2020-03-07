@@ -10,19 +10,23 @@ import torch
 ParityExample = Tuple[torch.Tensor, torch.Tensor]
 
 
-class BinaryParityDataset(torch.utils.data.IterableDataset):
+# pylint: disable=too-few-public-methods
+# pylint: disable=abstract-method
+class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
     """
     A torch IterableDataset for binary parity problems.
+    Yields examples as "unary sequences" of shape (1, `size`).
 
     Parameters
     ----------
-    size : int
+    size: int (default: 64)
         The length of each binary vector.
-    difficulty : float
+    difficulty: float (default: 0.5)
         The average fraction of each binary vector that is nonzero.
+        Must be in the range [0, 1].
     """
 
-    def __init__(self, size: int, difficulty: float):
+    def __init__(self, size: int = 64, difficulty: float = 0.5):
         if size <= 0:
             raise ValueError("size must be at least one.")
 
@@ -37,7 +41,8 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):
             yield self._make_example()
 
     def _make_example(self) -> ParityExample:
-        vec = torch.randint(2, (self._size,), dtype=torch.int8) * 2 - 1
-        mask = torch.rand_like(vec, dtype=float) < self._difficulty
+        vec = torch.randint(2, (1, self._size,), dtype=torch.int8) * 2 - 1
+        mask = torch.rand_like(vec, dtype=float) < self._difficulty  # type: ignore
         feature = vec * mask
-        return (feature, (feature == 0).sum() % 2)
+        parity = ((feature == 1).sum() % 2).to(dtype=bool)
+        return feature, parity
