@@ -19,6 +19,8 @@ N_DIGITS = 10
 N_TOKENS = 11
 EMPTY_CLASS = 10  # Class index of "empty" digits (beyond the number's end)
 
+MASK_VALUE = -2
+
 
 # pylint: disable=too-few-public-methods
 # pylint: disable=abstract-method
@@ -77,10 +79,15 @@ class AdditionDataset(torch.utils.data.IterableDataset):  # type: ignore
             digits_onehot = list(map(_onehot, digits))
             features[idx] = torch.cat(digits_onehot)
 
-            sum_digits = [string.digits.index(digit) for digit in str(cumsum)]
-            missing_digits = self.target_size - len(sum_digits)
-            sum_digits.extend([EMPTY_CLASS] * missing_digits)
-            targets[idx] = torch.as_tensor(sum_digits, dtype=torch.int8)
+            if idx > 0:
+                sum_digits = [
+                    string.digits.index(digit) for digit in str(cumsum)
+                ]
+                missing_digits = self.target_size - len(sum_digits)
+                sum_digits.extend([EMPTY_CLASS] * missing_digits)
+                targets[idx] = torch.as_tensor(sum_digits, dtype=torch.int8)
+            else:
+                targets[idx, :] = MASK_VALUE
 
         return features, targets
 
