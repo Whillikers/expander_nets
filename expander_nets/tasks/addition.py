@@ -10,7 +10,7 @@ from typing import List, Tuple
 
 import torch
 
-AdditionExample = Tuple[torch.Tensor, torch.Tensor]
+from expander_nets.tasks import utils
 
 EMPTY = "-"
 TOKENS = string.digits + EMPTY
@@ -63,11 +63,11 @@ class AdditionDataset(torch.utils.data.IterableDataset):  # type: ignore
         while True:
             yield self._make_example()
 
-    def _make_example(self) -> AdditionExample:
+    def _make_example(self) -> utils.Example:
         num_numbers = random.randint(self.min_numbers, self.max_numbers)
         cumsum = 0
         features = torch.empty(
-            [num_numbers, self.feature_size], dtype=torch.bool
+            [num_numbers, self.feature_size], dtype=torch.int8
         )
         targets = torch.empty([num_numbers, self.target_size], dtype=torch.int8)
 
@@ -101,7 +101,7 @@ def _onehot(token: str) -> torch.Tensor:
     if len(token) != 1 or token not in TOKENS:
         raise ValueError(f"token must be one of [{TOKENS}]")
 
-    onehot = torch.zeros(N_DIGITS, dtype=torch.bool)
+    onehot = torch.zeros(N_DIGITS, dtype=torch.int8)
     if token != EMPTY:
         onehot[int(token)] = True
     return onehot

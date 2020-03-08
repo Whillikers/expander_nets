@@ -3,11 +3,9 @@ Implements the "parity" task from Graves 2016: determining the parity of a
 statically-presented binary vector.
 """
 
-from typing import Tuple
-
 import torch
 
-ParityExample = Tuple[torch.Tensor, torch.Tensor]
+from expander_nets.tasks import utils
 
 
 # pylint: disable=too-few-public-methods
@@ -42,7 +40,7 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
         while True:
             yield self._make_example()
 
-    def _make_example(self) -> ParityExample:
+    def _make_example(self) -> utils.Example:
         vec = torch.randint(2, (self.size,), dtype=torch.int8) * 2 - 1
         mask = torch.rand_like(vec, dtype=float) < self.difficulty  # type: ignore
         feature = vec * mask
