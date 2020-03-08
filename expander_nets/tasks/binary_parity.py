@@ -3,6 +3,8 @@ Implements the "parity" task from Graves 2016: determining the parity of a
 statically-presented binary vector.
 """
 
+import random
+
 import torch
 
 from expander_nets.tasks import utils
@@ -24,16 +26,11 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
     """
 
     size: int
-    difficulty: float
 
-    def __init__(self, size: int = 64, difficulty: float = 0.5):
+    def __init__(self, size: int = 64):
         if size <= 0:
             raise ValueError("size must be at least one.")
 
-        if not 0 <= difficulty <= 1:
-            raise ValueError("difficulty must be in range [0, 1]")
-
-        self.difficulty = difficulty
         self.size = size
 
     def __iter__(self):
@@ -41,8 +38,8 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
             yield self._make_example()
 
     def _make_example(self) -> utils.Example:
-        vec = torch.randint(2, (self.size,), dtype=torch.int8) * 2 - 1
-        mask = torch.rand_like(vec, dtype=float) < self.difficulty  # type: ignore
-        feature = vec * mask
-        parity = ((feature == 1).sum() % 2).to(dtype=bool)
-        return feature, parity
+        vec = torch.randint(2, (self.size,), dtype=torch.float32) * 2 - 1
+        num_bits = random.randint(1, self.size)
+        vec[num_bits:] = 0
+        parity = (vec == 1).sum() % 2
+        return vec, parity
