@@ -15,7 +15,6 @@ ParityExample = Tuple[torch.Tensor, torch.Tensor]
 class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
     """
     A torch IterableDataset for binary parity problems.
-    Yields examples as "unary sequences" of shape (1, `size`).
 
     Parameters
     ----------
@@ -44,7 +43,7 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
             yield self._make_example()
 
     def _make_example(self) -> ParityExample:
-        vec = torch.randint(2, (1, self.size,), dtype=torch.int8) * 2 - 1
+        vec = torch.randint(2, (self.size,), dtype=torch.int8) * 2 - 1
         mask = torch.rand_like(vec, dtype=float) < self.difficulty  # type: ignore
         feature = vec * mask
         parity = ((feature == 1).sum() % 2).to(dtype=bool)
