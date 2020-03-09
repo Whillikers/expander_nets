@@ -15,6 +15,31 @@ from expander_nets import models, utils
 TASK_NAME = "parity"
 
 
+class ParityClassifier(nn.Module):
+    """
+    Us a sequential encoder to make a single binary classification by running
+    it on a unary sequence. Outputs a single logit.
+
+    Parameters
+    ----------
+    rnn: nn.Module
+        Any sequence-to-sequence model.
+    """
+
+    rnn: nn.Module
+
+    def __init__(self, rnn: nn.Module):
+        super(ParityClassifier, self).__init__()
+        self.rnn = rnn
+        self.linear = nn.Linear(rnn.hidden_size, 1)  # type: ignore
+
+    # pylint: disable=arguments-differ
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:  # type: ignore
+        encoded, _ = self.rnn(inputs)
+        logit = self.linear(encoded).squeeze()
+        return logit
+
+
 def train(
     rnn: nn.Module,
     bits: int,
@@ -44,11 +69,24 @@ def train(
         num_workers=data_workers,
     )
 
-    model = models.BinaryClassifier(rnn).train().to(device)
+    model = ParityClassifier(rnn).train().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     running_loss = 0.0
     running_correct = 0
+
+    def summary_step(step):
+        nonlocal running_loss
+        nonlocal running_correct
+
+        avg_loss = running_loss / utils.SUMMARY_PERIOD
+        avg_accuracy = running_correct / (utils.SUMMARY_PERIOD * batch_size)
+        summary_writer.add_scalar("loss", avg_loss, step)
+        summary_writer.add_scalar("accuracy", avg_accuracy, step)
+        running_loss = 0.0
+        running_correct = 0
+
+        print(f"[{step}] {avg_loss=:.3f} {avg_accuracy=:.3f}")
 
     for step, (vector, parity) in enumerate(data_loader):
         if use_gpu:
@@ -62,16 +100,9 @@ def train(
         optimizer.step()
 
         running_loss += loss.item()
-        running_correct += ((logit > 0) == parity).sum().item()
+        running_correct += ((logit.detach() > 0) == parity).sum().item()
         if step and step % utils.SUMMARY_PERIOD == 0:
-            avg_loss = running_loss / utils.SUMMARY_PERIOD
-            avg_accuracy = running_correct / (utils.SUMMARY_PERIOD * batch_size)
-            summary_writer.add_scalar("loss", avg_loss, step)
-            summary_writer.add_scalar("accuracy", avg_accuracy, step)
-            running_loss = 0.0
-            running_correct = 0
-
-            print(f"[{step}] {avg_loss=:.3f} {avg_accuracy=:.3f}")
+            summary_step(step)
 
 
 # pylint: disable=too-few-public-methods
@@ -104,3 +135,11 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
         vec[num_bits:] = 0
         parity = (vec == 1).sum(dtype=torch.float32) % 2
         return vec, parity
+
+
+# TODO: remove
+if __name__ == "__main__":
+    repeat_rnn = models.RepeatRNN(
+        nn.LSTM, input_size=64, hidden_size=128, repeats=2
+    )
+    train(repeat_rnn, 64, 128, 1e-3, run_name="test")
