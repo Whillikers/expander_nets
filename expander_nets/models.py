@@ -3,9 +3,14 @@ Code for various models and components.
 """
 
 
+from typing import Any, Callable, Tuple
+
 import torch
 from torch import nn
 from torch.nn import functional as F  # NOQA
+
+# Interface types
+RNNOutput = Tuple[torch.Tensor, Any]  # (output sequence, state)
 
 
 # Utils
@@ -46,19 +51,23 @@ class BinaryClassifier(nn.Module):
 
 
 # Other models
+RNNConstructor = Callable[[int, int], nn.RNNBase]  # input, hidden -> RNN
+
+
 class RepeatRNN(nn.Module):
     """
     An implementation of RepeatRNN from Fojo et al, which modifies an existing
     RNN by repeating its action a fixed number of times at each time step.
     Operates on a single input at a time.
 
-    NOTE: if mark_first is True (default), has an input size of one less
-    than the wrapped rnn.
-
     Parameters
     ----------
-    rnn: nn.RNNBase
-        The base RNN to modify through repeating.
+    rnn: RNNConstructor
+        The base RNN type to modify through repeating.
+    input_size: int
+        Number of expected features in the input.
+    hidden_size: int
+        Number of features in the hidden state.
     repeats: int
         How many steps to repeat per input.
     """
@@ -68,18 +77,26 @@ class RepeatRNN(nn.Module):
     input_size: int
     hidden_size: int
 
-    def __init__(self, rnn: nn.RNNBase, repeats: int):
+    def __init__(
+        self,
+        rnn_func: RNNConstructor,
+        input_size: int,
+        hidden_size: int,
+        repeats: int,
+    ):
         if repeats < 1:
             raise ValueError("repeats must be positive.")
 
         super(RepeatRNN, self).__init__()
-        self.rnn = rnn
         self.repeats = repeats
-        self.hidden_size = rnn.hidden_size
-        self.input_size = rnn.input_size - 1
+        self.hidden_size = hidden_size
+        self.input_size = input_size
+
+        # Reserve one spot for the start-of-sequence flag
+        self.rnn = rnn_func(input_size + 1, hidden_size)
 
     # pylint: disable=arguments-differ
-    def forward(self, inputs: torch.Tensor, state=None):  # type: ignore
+    def forward(self, inputs: torch.Tensor, state=None) -> RNNOutput:  # type: ignore
         repeated = _repeat_and_flag(inputs, self.repeats)
         _, state = self.rnn(repeated)
         hidden = state[0]
