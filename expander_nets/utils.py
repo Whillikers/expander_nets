@@ -14,6 +14,7 @@ Example = Tuple[torch.Tensor, torch.Tensor]
 
 PAD_VALUE = -1
 LOG_DIR = "./logs"
+SUMMARY_PERIOD = 1000  # Steps between writing summaries
 
 
 def collate_sequences(batch: List[Example]) -> Example:

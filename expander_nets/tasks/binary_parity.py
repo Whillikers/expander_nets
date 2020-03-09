@@ -13,7 +13,6 @@ from torch.nn import functional as F  # NOQA
 from expander_nets import models, utils
 
 TASK_NAME = "parity"
-SUMMARY_PERIOD = 1000  # Steps between writing summaries
 
 
 def train(
@@ -64,9 +63,9 @@ def train(
 
         running_loss += loss.item()
         running_correct += ((logit > 0) == parity).sum().item()
-        if step and step % SUMMARY_PERIOD == 0:
-            avg_loss = running_loss / SUMMARY_PERIOD
-            avg_accuracy = running_correct / (SUMMARY_PERIOD * batch_size)
+        if step and step % utils.SUMMARY_PERIOD == 0:
+            avg_loss = running_loss / utils.SUMMARY_PERIOD
+            avg_accuracy = running_correct / (utils.SUMMARY_PERIOD * batch_size)
             summary_writer.add_scalar("loss", avg_loss, step)
             summary_writer.add_scalar("accuracy", avg_accuracy, step)
             running_loss = 0.0
