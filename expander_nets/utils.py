@@ -12,7 +12,7 @@ from torch.utils import tensorboard
 # All examples are (x, y) pairs as Torch tensors
 Example = Tuple[torch.Tensor, torch.Tensor]
 
-PAD_VALUE = -1
+MASK_VALUE = -100
 LOG_DIR = "./logs"
 SUMMARY_PERIOD = 1000  # Steps between writing summaries
 
@@ -21,17 +21,17 @@ def collate_sequences(batch: List[Example]) -> Example:
     """
     Collating function for batching variable-length sequences, padding each
     sequence to the maximum length.
-    NOTE: inputs must not be boolean, and must not use -1 as a value.
+    NOTE: inputs must not be boolean, and must not use -100 as a value.
 
     Parameters
     ----------
     """
     features, targets = zip(*batch)
     features_padded = torch.nn.utils.rnn.pad_sequence(
-        features, padding_value=PAD_VALUE
+        features, padding_value=MASK_VALUE
     )
     targets_padded = torch.nn.utils.rnn.pad_sequence(
-        targets, padding_value=PAD_VALUE
+        targets, padding_value=MASK_VALUE
     )
     return features_padded, targets_padded
 

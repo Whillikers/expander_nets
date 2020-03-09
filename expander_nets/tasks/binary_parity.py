@@ -7,8 +7,8 @@ import random
 from typing import Optional
 
 import torch
+import torch.nn.functional as F
 from torch import nn
-from torch.nn import functional as F  # NOQA
 
 from expander_nets import models, utils
 
@@ -35,7 +35,7 @@ class ParityClassifier(nn.Module):
 
     # pylint: disable=arguments-differ
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:  # type: ignore
-        encoded, _ = self.rnn(inputs)
+        encoded, _ = self.rnn(inputs.unsqueeze(0))
         logit = self.linear(encoded).squeeze()
         return logit
 
@@ -81,8 +81,8 @@ def train(
 
         avg_loss = running_loss / utils.SUMMARY_PERIOD
         avg_accuracy = running_correct / (utils.SUMMARY_PERIOD * batch_size)
-        summary_writer.add_scalar("loss", avg_loss, step)
-        summary_writer.add_scalar("accuracy", avg_accuracy, step)
+        summary_writer.add_scalar("Loss", avg_loss, step)
+        summary_writer.add_scalar("Accuracy", avg_accuracy, step)
         running_loss = 0.0
         running_correct = 0
 
@@ -140,6 +140,6 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
 # TODO: remove
 if __name__ == "__main__":
     repeat_rnn = models.RepeatRNN(
-        nn.LSTM, input_size=64, hidden_size=128, repeats=2
+        nn.RNN, input_size=64, hidden_size=128, repeats=1
     )
-    train(repeat_rnn, 64, 128, 1e-3, run_name="test")
+    train(repeat_rnn, 64, 128, 1e-3, run_name="64/baseline")
