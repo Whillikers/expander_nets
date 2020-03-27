@@ -12,7 +12,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from expander_nets import utils
+from expander_nets import models, utils
 
 EMPTY = "-"
 TOKENS = string.digits + EMPTY
@@ -49,10 +49,8 @@ class AdditionClassifier(nn.Module):
         self.linear = nn.Linear(rnn.hidden_size, self.num_logits)  # type: ignore
 
     # pylint: disable=arguments-differ
-    def forward(  # type: ignore
-        self, inputs: torch.Tensor, state=None
-    ) -> Tuple[torch.Tensor, Any]:
-        encoded, state = self.rnn(inputs, state)
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:  # type: ignore
+        encoded, _ = self.rnn(inputs)
         logits = self.linear(encoded)  # Shape: [seq_length, batch, num_logits]
         logits = logits.view(
             [
@@ -62,7 +60,7 @@ class AdditionClassifier(nn.Module):
                 NUM_CLASSES,
             ]
         )
-        return logits, state
+        return logits
 
 
 def train(
@@ -130,7 +128,7 @@ def train(
 
         optimizer.zero_grad()
 
-        logits, _ = model(features)
+        logits = model(features)
         log_prob = F.log_softmax(logits, dim=-1)
 
         loss = F.nll_loss(
@@ -139,6 +137,7 @@ def train(
             ignore_index=utils.MASK_VALUE,
         )
         loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), 1)
         optimizer.step()
 
         running_loss += loss.item()
@@ -238,3 +237,28 @@ def _onehot(token: str) -> torch.Tensor:
     if token != EMPTY:
         onehot[int(token)] = 1.0
     return onehot
+
+
+# TODO: remove
+if __name__ == "__main__":
+    #  repeat_rnn = models.RepeatRNN(
+    #      nn.LSTM, input_size=50, hidden_size=512, repeats=5
+    #  )
+    expander = models.FixedLSTMExpander(
+        input_size=50,
+        hidden_size=256,
+        translator_dim=512,
+        space=5,
+        num_layers=2,
+        heads=4,
+    )
+    #  print(sum([p.numel() for p in repeat_rnn.parameters()]))
+    #  print(sum([p.numel() for p in expander.parameters()]))
+    train(
+        expander,
+        sequence_length=5,
+        max_digits=5,
+        batch_size=128,
+        learning_rate=1e-3,
+        run_name="expander_lstm_5_256_clipnorm_nolayernorm",
+    )

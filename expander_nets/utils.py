@@ -14,7 +14,8 @@ Example = Tuple[torch.Tensor, torch.Tensor]
 
 MASK_VALUE = -100
 LOG_DIR = "./logs"
-SUMMARY_PERIOD = 1000  # Steps between writing summaries
+SUMMARY_PERIOD = 100  # Steps between writing summaries
+CHECKPOINT_PERIOD = 1  # Steps between writing checkpoints
 
 
 def collate_sequences(batch: List[Example]) -> Example:

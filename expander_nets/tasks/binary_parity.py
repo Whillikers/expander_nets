@@ -139,7 +139,7 @@ class BinaryParityDataset(torch.utils.data.IterableDataset):  # type: ignore
 
 # TODO: remove
 if __name__ == "__main__":
-    repeat_rnn = models.RepeatRNN(
-        nn.RNN, input_size=64, hidden_size=128, repeats=1
+    expander = models.FixedGRUExpander(
+        input_size=64, hidden_size=64, translator_dim=64, space=2
     )
-    train(repeat_rnn, 64, 128, 1e-3, run_name="64/baseline")
+    train(expander, 64, 128, 1e-3, run_name="64/expander_2_64")
